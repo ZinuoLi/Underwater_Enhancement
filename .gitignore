@@ -1,5 +1,7 @@
 *.txt
 
+*.idea/
+
 *.yml
 wandb/
 
