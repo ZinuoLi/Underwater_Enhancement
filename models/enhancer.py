@@ -1,10 +1,7 @@
 import torch
 import torch.nn as nn
-from models.hdr import HDRNet
-from models.agg import Agg, Backbone
 from models.unet import UNET
 from models.transformer import Restormer
-from models.csrnet import CSRNet
 from models.nafnet import NAFNet
 from pytorch_wavelets import DWTForward, DWTInverse
 from loss import Perceptual
@@ -21,19 +18,14 @@ class Enhancer(nn.Module):
         self.enhance = enhance
         if ll_layer == 'Transformer':
             self.ll_layer_module = Restormer()
-        elif ll_layer == 'Refine':
-            self.ll_layer_module = Agg()
         elif ll_layer == 'NAF':
             self.ll_layer_module = NAFNet()
         else:
             self.ll_layer_module = UNET()
         self.h_layer = UNET()
-        if enhance == 'CSR':
-            self.enhance_module = CSRNet()
-        elif enhance == 'HDR':
-            self.enhance_module = HDRNet(params)
-        else:
-            self.enhance_module = UNET()
+
+        self.enhance_module = UNET()
+
         self.criterion_l1 = torch.nn.SmoothL1Loss()
 
     def hdr_loss(self, gt, pred):
@@ -50,10 +42,6 @@ class Enhancer(nn.Module):
         total_loss_value = 0.2 * color_loss
 
         return total_loss_value
-
-    def backbone(self, x):
-        backbone_net = Backbone().to(self.device)
-        return backbone_net(x)
 
     def ll_forward(self, inp_ll):
         if self.ll_layer == 'Refine':
@@ -91,6 +79,7 @@ class Enhancer(nn.Module):
         recon_hl = inp_hl_hat.unsqueeze(2)
         recon_lh = inp_lh_hat.unsqueeze(2)
         recon_hh = inp_hh_hat.unsqueeze(2)
+
         recon_hf = [torch.cat((recon_hl, recon_lh, recon_hh), dim=2)]
         # out = self.idwt((inp_ll_hat, recon_hf))
 

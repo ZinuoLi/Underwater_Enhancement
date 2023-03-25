@@ -86,6 +86,8 @@ class Config(object):
         self._C.TESTING = CN()
         self._C.TESTING.WEIGHT = None
         self._C.TESTING.SAVE_IMAGES = False
+        self._C.TESTING.PS_W = 64
+        self._C.TESTING.PS_H = 64
 
         # Override parameter values from YAML file first, then from override list.
         self._C.merge_from_file(config_yaml)

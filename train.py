@@ -10,7 +10,7 @@ from torchmetrics import PeakSignalNoiseRatio
 from tqdm import tqdm
 
 from config import Config
-from data import get_training_data, get_validation_data
+from data import get_training_data, get_test_data
 from loss import ColorLoss
 from models import *
 from utils import seed_everything, save_checkpoint
@@ -46,13 +46,13 @@ def train():
     train_dataset = get_training_data(train_dir, opt.MODEL.FILM, {'w': opt.TRAINING.PS_W, 'h': opt.TRAINING.PS_H})
     trainloader = DataLoader(dataset=train_dataset, batch_size=opt.OPTIM.BATCH_SIZE, shuffle=True, num_workers=16,
                              drop_last=False, pin_memory=True)
-    val_dataset = get_validation_data(val_dir, opt.MODEL.FILM, {'w': opt.TRAINING.PS_W, 'h': opt.TRAINING.PS_H})
+    val_dataset = get_test_data(val_dir, opt.MODEL.FILM, {'w': opt.TESTING.PS_W, 'h': opt.TESTING.PS_H})
     testloader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, num_workers=8, drop_last=False,
                             pin_memory=True)
+    print(train_dataset[0][0].shape)
+    print(val_dataset[0][0].shape)
 
-    
-    params = {'batch_norm': True}
-    model = Enhancer(params=params, device=device, ll_layer=opt.MODEL.LL, enhance=opt.MODEL.ENHANCE)
+    model = UWEnhancer(device=device)
 
     # Optimizer & Scheduler
     optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=opt.OPTIM.LR_INITIAL,
@@ -91,7 +91,6 @@ def train():
             with torch.no_grad():
                 psnr = 0
                 ssim = 0
-                delta_e = 0
                 for idx, test_data in enumerate(tqdm(testloader)):
                     # get the inputs; data is a list of [targets, inputs, filename]
                     tar = test_data[0]
@@ -101,11 +100,9 @@ def train():
                     all_res, all_tar = accelerator.gather((res, tar))
                     psnr += metric_psnr(all_res, all_tar)
                     ssim += metric_ssim(all_res, all_tar)
-                    delta_e += metric_color(all_res, all_tar)
 
                 psnr /= len(testloader)
                 ssim /= len(testloader)
-                delta_e /= len(testloader)
 
                 if psnr > best_psnr:
                     # save model
@@ -118,13 +115,12 @@ def train():
 
                 accelerator.log({
                     "PSNR": psnr,
-                    "SSIM": ssim,
-                    "ΔE": delta_e
+                    "SSIM": ssim
                 }, step=epoch)
 
                 print(
-                    "epoch: {}, PSNR: {}, SSIM: {}, ΔE: {}, best PSNR: {}".format(epoch, psnr, ssim, delta_e,
-                                                                                  best_psnr))
+                    "epoch: {}, PSNR: {}, SSIM: {}, best PSNR: {}".format(epoch, psnr, ssim,
+                                                                          best_psnr))
 
     accelerator.end_training()
 

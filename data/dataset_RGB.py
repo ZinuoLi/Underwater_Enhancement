@@ -1,12 +1,11 @@
 import os
 import random
 
-import torch
 import torchvision.transforms.functional as F
-import torchvision.transforms as TF
 from PIL import Image
 from torch.utils.data import Dataset
 import numpy as np
+import albumentations as A
 
 
 def is_image_file(filename):
@@ -29,65 +28,61 @@ class DataLoaderTrain(Dataset):
         self.ps_w = self.img_options['w']
         self.ps_h = self.img_options['h']
 
+        self.transform = A.Compose([
+            A.RandomResizedCrop(width=img_options['w'], height=img_options['h']),
+            A.HorizontalFlip(p=0.3),
+            A.VerticalFlip(p=0.3),
+            A.RandomRotate90(p=0.3), ],
+            additional_targets={
+                'target': 'image',
+                # 'mask': 'image'
+            }
+        )
+
     def __len__(self):
         return self.sizex
 
     def __getitem__(self, index):
         index_ = index % self.sizex
 
+        mixup_idx = random.randint(0, self.sizex - 1)
+        while mixup_idx == index_:
+            mixup_idx = random.randint(0, self.sizex - 1)
+
         inp_path = self.inp_filenames[index_]
         tar_path = self.tar_filenames[index_]
+
+        mixup_inp_path = self.inp_filenames[mixup_idx]
+        mixup_tar_path = self.tar_filenames[mixup_idx]
 
         inp_img = Image.open(inp_path)
         tar_img = Image.open(tar_path)
 
-        ratio_h = np.random.uniform(0.6, 1.0)
-        ratio_w = np.random.uniform(0.6, 1.0)
-        w, h = inp_img._size
-        crop_h = round(h * ratio_h)
-        crop_w = round(w * ratio_w)
-        i, j, h, w = TF.RandomCrop.get_params(inp_img, output_size=(crop_h, crop_w))
-        inp_img = F.crop(inp_img, i, j, h, w)
-        tar_img = F.crop(tar_img, i, j, h, w)
+        mixup_inp_img = Image.open(mixup_inp_path)
+        mixup_tar_img = Image.open(mixup_tar_path)
 
-        inp_img = F.to_tensor(inp_img)
-        tar_img = F.to_tensor(tar_img)
+        inp_img = np.array(inp_img)
+        tar_img = np.array(tar_img)
 
-        # Data Augmentations
-        aug = random.randint(0, 8)
-        if aug == 1:
-            inp_img = inp_img.flip(1)
-            tar_img = tar_img.flip(1)
-        elif aug == 2:
-            inp_img = inp_img.flip(2)
-            tar_img = tar_img.flip(2)
-        elif aug == 3:
-            inp_img = torch.rot90(inp_img, dims=(1, 2))
-            tar_img = torch.rot90(tar_img, dims=(1, 2))
-        elif aug == 4:
-            inp_img = torch.rot90(inp_img, dims=(1, 2), k=2)
-            tar_img = torch.rot90(tar_img, dims=(1, 2), k=2)
-        elif aug == 5:
-            inp_img = torch.rot90(inp_img, dims=(1, 2), k=3)
-            tar_img = torch.rot90(tar_img, dims=(1, 2), k=3)
-        elif aug == 6:
-            inp_img = torch.rot90(inp_img.flip(1), dims=(1, 2))
-            tar_img = torch.rot90(tar_img.flip(1), dims=(1, 2))
-        elif aug == 7:
-            inp_img = torch.rot90(inp_img.flip(2), dims=(1, 2))
-            tar_img = torch.rot90(tar_img.flip(2), dims=(1, 2))
+        mixup_inp_img = np.array(mixup_inp_img)
+        mixup_tar_img = np.array(mixup_tar_img)
 
-        inp_img = F.resize(inp_img, [self.ps_h, self.ps_w])
-        tar_img = F.resize(tar_img, [self.ps_h, self.ps_w])
+        transformed = self.transform(image=inp_img, target=tar_img)
+        mixup_transformed = self.transform(image=mixup_inp_img, target=mixup_tar_img)
+
+        lam = random.uniform(0, 1)
+
+        inp_img = lam * F.to_tensor(transformed['image']) + (1 - lam) * F.to_tensor(mixup_transformed['image'])
+        tar_img = lam * F.to_tensor(transformed['target']) + (1 - lam) * F.to_tensor(mixup_transformed['target'])
 
         filename = os.path.splitext(os.path.split(tar_path)[-1])[0]
 
         return tar_img, inp_img, filename
 
 
-class DataLoaderVal(Dataset):
+class DataLoaderTest(Dataset):
     def __init__(self, rgb_dir, film_class='target', img_options=None):
-        super(DataLoaderVal, self).__init__()
+        super(DataLoaderTest, self).__init__()
 
         inp_files = sorted(os.listdir(os.path.join(rgb_dir, 'input')))
         tar_files = sorted(os.listdir(os.path.join(rgb_dir, film_class)))
@@ -101,6 +96,15 @@ class DataLoaderVal(Dataset):
         self.ps_w = self.img_options['w']
         self.ps_h = self.img_options['h']
 
+        self.transform = A.Compose([
+            A.RandomResizedCrop(width=img_options['w'], height=img_options['h']),
+        ],
+            additional_targets={
+                'target': 'image',
+                # 'mask': 'image'
+            }
+        )
+
     def __len__(self):
         return self.sizex
 
@@ -113,40 +117,16 @@ class DataLoaderVal(Dataset):
         inp_img = Image.open(inp_path)
         tar_img = Image.open(tar_path)
 
-        inp_img = F.to_tensor(inp_img)
-        tar_img = F.to_tensor(tar_img)
+        inp_img = np.array(inp_img)
+        tar_img = np.array(tar_img)
 
-        inp_img = F.resize(inp_img, [self.ps_h, self.ps_w])
-        tar_img = F.resize(tar_img, [self.ps_h, self.ps_w])
+        transformed = self.transform(image=inp_img, target=tar_img)
+
+        lam = random.uniform(0, 1)
+
+        inp_img = lam * F.to_tensor(transformed['image'])
+        tar_img = lam * F.to_tensor(transformed['target'])
 
         filename = os.path.splitext(os.path.split(tar_path)[-1])[0]
 
         return tar_img, inp_img, filename
-
-
-class DataLoaderTest(Dataset):
-    def __init__(self, inp_dir, img_options, film_class='target'):
-        super(DataLoaderTest, self).__init__()
-
-        inp_files = sorted(os.listdir(inp_dir))
-        tar_files = sorted(os.listdir(os.path.join(inp_dir, film_class)))
-
-        self.inp_filenames = [os.path.join(inp_dir, x) for x in inp_files if is_image_file(x)]
-        self.tar_filenames = [os.path.join(film_class, x) for x in tar_files if is_image_file(x)]
-
-        self.inp_size = len(self.inp_filenames)
-        self.img_options = img_options
-
-    def __len__(self):
-        return self.inp_size
-
-    def __getitem__(self, index):
-        path_inp = self.inp_filenames[index]
-        path_tar = self.tar_filenames[index]
-        filename = os.path.splitext(os.path.split(path_inp)[-1])[0]
-        inp = Image.open(path_inp)
-        tar = Image.open(path_tar)
-
-        inp = F.to_tensor(inp)
-        tar = F.to_tensor(tar)
-        return inp, tar, filename

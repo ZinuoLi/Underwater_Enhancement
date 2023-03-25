@@ -19,9 +19,13 @@ OPTIM:
 TRAINING:
   VAL_AFTER_EVERY: 1
   RESUME: False
-  PS_W: 512
-  PS_H: 512
-  TRAIN_DIR: '/data/dataset/hdrplus/train' # path to training data
-  VAL_DIR: '/data/dataset/hdrplus/test'     # path to validation data
+  PS_W: 128
+  PS_H: 128
+  TRAIN_DIR: '/data1/lzn/dataset/UIEBD/train' # path to training data
+  VAL_DIR: '/data1/lzn/dataset/UIEBD/test'     # path to validation data
   SAVE_DIR: './checkpoints'          # path to save models and images
   # SAVE_IMAGES: False
+
+TESTING:
+  PS_W: 128
+  PS_H: 128
