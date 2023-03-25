@@ -11,7 +11,6 @@ from tqdm import tqdm
 
 from config import Config
 from data import get_training_data, get_test_data
-from loss import ColorLoss
 from models import *
 from utils import seed_everything, save_checkpoint
 

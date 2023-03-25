@@ -122,10 +122,8 @@ class DataLoaderTest(Dataset):
 
         transformed = self.transform(image=inp_img, target=tar_img)
 
-        lam = random.uniform(0, 1)
-
-        inp_img = lam * F.to_tensor(transformed['image'])
-        tar_img = lam * F.to_tensor(transformed['target'])
+        inp_img = F.to_tensor(transformed['image'])
+        tar_img = F.to_tensor(transformed['target'])
 
         filename = os.path.splitext(os.path.split(tar_path)[-1])[0]
 
