@@ -21,23 +21,6 @@ class UWEnhancer(nn.Module):
         # self.h_layer = UNET()
         self.criterion_l1 = torch.nn.SmoothL1Loss()
 
-    def hdr_loss(self, gt, pred):
-        b, c, h, w = gt.shape
-        gt_reflect_view = gt.view(b, c, h * w).permute(0, 2, 1)
-        pred_reflect_view = pred.view(b, c, h * w).permute(0, 2, 1)
-        gt_reflect_norm = torch.nn.functional.normalize(gt_reflect_view, dim=-1)
-        pred_reflect_norm = torch.nn.functional.normalize(pred_reflect_view, dim=-1)
-        cose_value = gt_reflect_norm * pred_reflect_norm
-        cose_value = torch.sum(cose_value, dim=-1)
-        color_loss = torch.mean(1 - cose_value)
-
-        total_loss_value = 0.2 * color_loss
-
-        return total_loss_value
-
-    def ll_forward(self, inp_ll):
-        return self.ll_layer_module(inp_ll)
-
     def forward(self, inp):
         inp_ll, inp_hf = self.dwt(inp)
 
@@ -45,7 +28,7 @@ class UWEnhancer(nn.Module):
         inp_lh = inp_hf[0][:, :, 1, :, :]
         inp_hh = inp_hf[0][:, :, 2, :, :]
 
-        inp_ll_hat = self.ll_forward(inp_ll)
+        inp_ll_hat = self.ll_layer_module(inp_ll)
         inp_H = torch.cat((inp_hl, inp_lh, inp_hh), dim=1)
         # print(inp_H.shape)
 
