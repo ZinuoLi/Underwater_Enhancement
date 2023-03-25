@@ -1,6 +1,6 @@
 *.txt
 
-*.idea/
+.idea/
 
 *.yml
 wandb/

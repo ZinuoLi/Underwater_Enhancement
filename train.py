@@ -6,7 +6,7 @@ import torch.optim as optim
 from accelerate import Accelerator, DistributedDataParallelKwargs
 from pytorch_msssim import SSIM
 from torch.utils.data import DataLoader
-from torchmetrics import PeakSignalNoiseRatio
+from torchmetrics.functional import peak_signal_noise_ratio, structural_similarity_index_measure
 from tqdm import tqdm
 
 from config import Config
@@ -35,9 +35,8 @@ def train():
         "model": opt.MODEL.SESSION
     }
     accelerator.init_trackers("film", config=config)
-    metric_psnr = PeakSignalNoiseRatio().to(device)
-    metric_ssim = SSIM(data_range=1, size_average=True, channel=3).to(device)
-    metric_color = ColorLoss()
+    criterion_psnr = torch.nn.MSELoss()
+    criterion_ssim = SSIM(data_range=1, size_average=True, channel=3).to(device)
 
     # Data Loader
     train_dir = opt.TRAINING.TRAIN_DIR
@@ -52,10 +51,10 @@ def train():
     print(train_dataset[0][0].shape)
     print(val_dataset[0][0].shape)
 
-    model = UWEnhancer(device=device)
+    model = UWEnhancer()
 
     # Optimizer & Scheduler
-    optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=opt.OPTIM.LR_INITIAL,
+    optimizer = optim.AdamW(model.parameters(), lr=opt.OPTIM.LR_INITIAL,
                             betas=(0.9, 0.999), eps=1e-8)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, opt.OPTIM.NUM_EPOCHS, eta_min=opt.OPTIM.LR_MIN)
 
@@ -77,7 +76,12 @@ def train():
 
             # forward
             optimizer.zero_grad()
-            res, train_loss = model(inp, tar)
+            res = model(inp)
+
+            loss_psnr = criterion_psnr(res, tar)
+            loss_ssim = 1 - criterion_ssim(res, tar)
+
+            train_loss = loss_psnr + 0.4 * loss_ssim
 
             # backward
             accelerator.backward(train_loss)
@@ -97,9 +101,9 @@ def train():
                     inp = test_data[1].contiguous()
 
                     res = model(inp, tar)
-                    all_res, all_tar = accelerator.gather((res, tar))
-                    psnr += metric_psnr(all_res, all_tar)
-                    ssim += metric_ssim(all_res, all_tar)
+                    res, tar = accelerator.gather((res, tar))
+                    psnr += peak_signal_noise_ratio(res, tar, data_range=1)
+                    ssim += structural_similarity_index_measure(res, tar, data_range=1)
 
                 psnr /= len(testloader)
                 ssim /= len(testloader)
