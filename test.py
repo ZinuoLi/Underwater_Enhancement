@@ -13,7 +13,7 @@ from torchvision.utils import save_image
 from tqdm import tqdm
 
 from config import Config
-from data import get_validation_data
+from data import get_test_data
 from models import *
 from utils import seed_everything, load_checkpoint
 
@@ -31,11 +31,11 @@ def test():
     # Data Loader
     val_dir = opt.TRAINING.VAL_DIR
 
-    val_dataset = get_validation_data(val_dir, opt.MODEL.FILM, {'w': opt.TRAINING.PS_W, 'h': opt.TRAINING.PS_H})
+    val_dataset = get_test_data(val_dir, opt.MODEL.FILM, {'w': opt.TRAINING.PS_W, 'h': opt.TRAINING.PS_H})
     testloader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, num_workers=8, drop_last=False,
                             pin_memory=True)
 
-    model = Enhancer(device=device)
+    model = UWEnhancer(device=device)
 
     load_checkpoint(model, opt.TESTING.WEIGHT)
 
@@ -51,9 +51,9 @@ def test():
         for idx, test_data in enumerate(tqdm(testloader)):
             # get the inputs; data is a list of [targets, inputs, filename]
             tar = test_data[0]
-            inp = test_data[1]
+            inp = test_data[1].contiguous()
 
-            res = model(inp, tar)
+            res = model(inp, tar).contiguous()
             save_image(res, os.path.join(os.getcwd(), "result", test_data[2][0] + '_pred.png'))
             save_image(tar, os.path.join(os.getcwd(), "result", test_data[2][0] + '_gt.png'))
 

@@ -97,7 +97,7 @@ class DataLoaderTest(Dataset):
         self.ps_h = self.img_options['h']
 
         self.transform = A.Compose([
-            A.RandomResizedCrop(width=img_options['w'], height=img_options['h']),
+            # A.RandomResizedCrop(width=img_options['w'], height=img_options['h']),
         ],
             additional_targets={
                 'target': 'image',
@@ -124,6 +124,9 @@ class DataLoaderTest(Dataset):
 
         inp_img = F.to_tensor(transformed['image'])
         tar_img = F.to_tensor(transformed['target'])
+
+        # inp_img = F.to_tensor(inp_img)
+        # tar_img = F.to_tensor(tar_img)
 
         filename = os.path.splitext(os.path.split(tar_path)[-1])[0]
 

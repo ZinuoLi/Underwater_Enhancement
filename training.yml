@@ -10,7 +10,7 @@ MODEL:
 # Optimization arguments.
 OPTIM:
   BATCH_SIZE: 4
-  NUM_EPOCHS: 100
+  NUM_EPOCHS: 200
   # NEPOCH_DECAY: [10]
   LR_INITIAL: 2e-4
   LR_MIN: 1e-6
@@ -21,11 +21,11 @@ TRAINING:
   RESUME: False
   PS_W: 128
   PS_H: 128
-  TRAIN_DIR: '/data1/lzn/dataset/UIEBD/train' # path to training data
-  VAL_DIR: '/data1/lzn/dataset/UIEBD/test'     # path to validation data
+  TRAIN_DIR: 'G:/dataset/UIEBD/train' # path to training data
+  VAL_DIR: 'G:/dataset/UIEBD/test'     # path to validation data
   SAVE_DIR: './checkpoints'          # path to save models and images
   # SAVE_IMAGES: False
 
 TESTING:
-  PS_W: 128
-  PS_H: 128
+  PS_W: 360
+  PS_H: 360

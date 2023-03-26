@@ -1,13 +1,52 @@
-from models.High_FFC import BasicBlock
+# from models.High_FFC import BasicBlock
 from models.nafnet import NAFNet
 from pytorch_wavelets import DWTForward, DWTInverse
 from loss import Perceptual
 import torch
 import torch.nn as nn
-from models.IAT_ import IAT
 import torch.nn.functional as F
-from models.High_FFC import *
+# from models.High_FFC import *
 from models.unet import UNET
+from models.FFCNet import FFCNet
+
+
+class ResidualBlock(nn.Module):
+    def __init__(self, in_features):
+        super(ResidualBlock, self).__init__()
+
+        self.block = nn.Sequential(
+            nn.Conv2d(in_features, in_features, 3, padding=1),
+            nn.LeakyReLU(),
+            nn.Conv2d(in_features, in_features, 3, padding=1),
+        )
+
+    def forward(self, x):
+        return x + self.block(x)
+
+
+class Trans_low(nn.Module):
+    def __init__(self, num_residual_blocks=5):
+        super(Trans_low, self).__init__()
+
+        model = [nn.Conv2d(9, 16, 3, padding=1),
+                 nn.InstanceNorm2d(16),
+                 nn.LeakyReLU(),
+                 nn.Conv2d(16, 64, 3, padding=1),
+                 nn.LeakyReLU()]
+
+        for _ in range(num_residual_blocks):
+            model += [ResidualBlock(64)]
+
+        model += [nn.Conv2d(64, 16, 3, padding=1),
+                  nn.LeakyReLU(),
+                  nn.Conv2d(16, 9, 3, padding=1)]
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self, x):
+        out = x + self.model(x)
+        out = torch.tanh(out)
+        return out
 
 
 class UWEnhancer(nn.Module):
@@ -16,9 +55,11 @@ class UWEnhancer(nn.Module):
         super(UWEnhancer, self).__init__()
         self.dwt = DWTForward(J=1, mode='zero', wave='haar')
         self.idwt = DWTInverse(mode='zero', wave='haar')
-        self.ll_layer_module = IAT()
-        self.h_layer = FFCResNet(BasicBlock, [1, 1, 1, 1], out_h=64, out_w=64)
+        self.ll_layer_module = FFCNet()
+        # self.h_layer = FFCResNet(BasicBlock, [1, 1, 1, 1], out_h=64, out_w=64)
         # self.h_layer = UNET()
+        # self.h_layer = FFCNet()
+        self.h_layer = Trans_low()
         self.criterion_l1 = torch.nn.SmoothL1Loss()
 
     def forward(self, inp):
@@ -43,15 +84,14 @@ class UWEnhancer(nn.Module):
 
         recon_hf = [torch.cat((recon_hl, recon_lh, recon_hh), dim=2)]
 
-        result = self.idwt((inp_ll_hat[2], recon_hf))
+        result = self.idwt((inp_ll_hat, recon_hf))
 
         return result
 
 
 if __name__ == '__main__':
-    tensor = torch.randn(1, 3, 360, 640).cuda()
+    tensor = torch.randn(1, 3, 128, 128).cuda()
     model = UWEnhancer().cuda()
     print('total parameters:', sum(param.numel() for param in model.parameters()))
-    res, loss = model(tensor, tensor)
+    res = model(tensor)
     print(res.shape)
-    print(loss.item())
