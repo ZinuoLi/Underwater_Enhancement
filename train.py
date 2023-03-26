@@ -3,11 +3,13 @@ import warnings
 
 import torch
 import torch.optim as optim
+import torchvision.utils
 from accelerate import Accelerator, DistributedDataParallelKwargs
 from pytorch_msssim import SSIM
 from torch.utils.data import DataLoader
 from torchmetrics.functional import peak_signal_noise_ratio, structural_similarity_index_measure
 from tqdm import tqdm
+from torchvision.utils import save_image
 
 from config import Config
 from data import get_training_data, get_test_data
@@ -47,7 +49,7 @@ def train():
     val_dataset = get_test_data(val_dir, opt.MODEL.FILM, {'w': opt.TESTING.PS_W, 'h': opt.TESTING.PS_H})
     testloader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, num_workers=8, drop_last=False,
                             pin_memory=True)
-    print(train_dataset[0][0].shape)
+    # print(train_dataset[0][0].shape)
     print(val_dataset[0][0].shape)
 
     model = UWEnhancer()
@@ -99,7 +101,8 @@ def train():
                     tar = test_data[0]
                     inp = test_data[1].contiguous()
 
-                    res = model(inp)
+                    res = model(inp).contiguous()
+                    # save_image(res, os.path.join(os.getcwd(), "result", str(idx) + '_pred.png'))
                     res, tar = accelerator.gather((res, tar))
                     psnr += peak_signal_noise_ratio(res, tar, data_range=1)
                     ssim += structural_similarity_index_measure(res, tar, data_range=1)
