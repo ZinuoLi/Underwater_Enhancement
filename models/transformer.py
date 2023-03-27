@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+
 class MDTA(nn.Module):
     def __init__(self, channels, num_heads):
         super(MDTA, self).__init__()
@@ -126,7 +127,7 @@ class Restormer(nn.Module):
 
 
 if __name__ == '__main__':
-    tensor = torch.randn(1, 3, 256, 256).cuda()
+    tensor = torch.randn(1, 3, 72, 128).cuda()
     model = Restormer().cuda()
     res = model(tensor)
     print(res.shape)

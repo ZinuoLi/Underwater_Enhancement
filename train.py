@@ -13,6 +13,7 @@ from torchvision.utils import save_image
 
 from config import Config
 from data import get_training_data, get_test_data
+from loss import Perceptual
 from models import *
 from utils import seed_everything, save_checkpoint
 
@@ -50,7 +51,7 @@ def train():
     testloader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, num_workers=8, drop_last=False,
                             pin_memory=True)
     # print(train_dataset[0][0].shape)
-    print(val_dataset[0][0].shape)
+    # print(val_dataset[0][0].shape)
 
     model = UWEnhancer()
 
@@ -69,26 +70,31 @@ def train():
     # training
     for epoch in range(start_epoch, opt.OPTIM.NUM_EPOCHS + 1):
         model.train()
+        train_loss = 0
 
         for i, data in enumerate(tqdm(trainloader)):
             # get the inputs; data is a list of [target, input, filename]
-            tar = data[0]
+            tar = data[0].contiguous()
             inp = data[1].contiguous()
+            # print(inp.shape)
+            # print(tar.shape)
 
             # forward
             optimizer.zero_grad()
-            res = model(inp)
+            res = model(inp).contiguous()
 
             loss_psnr = criterion_psnr(res, tar)
             loss_ssim = 1 - criterion_ssim(res, tar)
+            loss_perceptual = Perceptual()
 
-            train_loss = loss_psnr + 0.4 * loss_ssim
+            train_loss = loss_perceptual(res, tar) + loss_psnr + 0.4 * loss_ssim
 
             # backward
             accelerator.backward(train_loss)
             optimizer.step()
 
         scheduler.step()
+        print("epoch: {}, Loss: {}".format(epoch, train_loss))
 
         # testing
         if epoch % opt.TRAINING.VAL_AFTER_EVERY == 0:
@@ -101,9 +107,15 @@ def train():
                     tar = test_data[0]
                     inp = test_data[1].contiguous()
 
+                    # print("res_shape: ", res.shape)
+                    # print("tar_shape: ", tar.shape)
+
                     res = model(inp).contiguous()
+
+                    res = torch.nn.functional.interpolate(res, (tar.shape[2], tar.shape[3]))
                     # save_image(res, os.path.join(os.getcwd(), "result", str(idx) + '_pred.png'))
                     res, tar = accelerator.gather((res, tar))
+
                     psnr += peak_signal_noise_ratio(res, tar, data_range=1)
                     ssim += structural_similarity_index_measure(res, tar, data_range=1)
 

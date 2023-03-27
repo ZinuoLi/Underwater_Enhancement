@@ -112,7 +112,7 @@ class NAFBlock(nn.Module):
 
 class NAFNet(nn.Module):
 
-    def __init__(self, img_channel=3, width=32, middle_blk_num=12, enc_blk_nums=[2, 2, 4, 8], dec_blk_nums=[8, 4, 2, 2]):
+    def __init__(self, img_channel=3, width=32, middle_blk_num=12, enc_blk_nums=[2, 2, 4, 8], dec_blk_nums=[2, 2, 2, 2]):
         super().__init__()
 
         self.intro = nn.Conv2d(in_channels=img_channel, out_channels=width, kernel_size=3, padding=1, stride=1,
@@ -213,10 +213,3 @@ if __name__ == "__main__":
     # input = torch.randn(1, 3, 32, 32)
     y = model(input)
     print(y.size())
-
-    print('total parameters:', sum(param.numel() for param in model.parameters()))
-
-    from thop import profile
-
-    flops, params = profile(model=model, inputs=(input,))
-    print('Model:{:.2f} GFLOPs and {:.2f}M parameters'.format(flops / 1e9, params / 1e6))

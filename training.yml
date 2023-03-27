@@ -21,8 +21,8 @@ TRAINING:
   RESUME: False
   PS_W: 128
   PS_H: 128
-  TRAIN_DIR: 'G:/dataset/UIEBD/train' # path to training data
-  VAL_DIR: 'G:/dataset/UIEBD/test'     # path to validation data
+  TRAIN_DIR: 'G:/dataset/S10K/train' # path to training data
+  VAL_DIR: 'G:/dataset/S10K/val'     # path to validation data
   SAVE_DIR: './checkpoints'          # path to save models and images
   # SAVE_IMAGES: False
 
