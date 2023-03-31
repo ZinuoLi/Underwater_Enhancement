@@ -6,10 +6,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 # from models.High_FFC import *
-from models.unet import UNET
 from models.FFCNet import FFCNet
-from models.ffcnafnet import FFCNAFNet
 from models.IAT import IAT
+
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_features):
@@ -56,14 +55,8 @@ class UWEnhancer(nn.Module):
         super(UWEnhancer, self).__init__()
         self.dwt = DWTForward(J=1, mode='zero', wave='haar')
         self.idwt = DWTInverse(mode='zero', wave='haar')
-        # self.ll_layer_module = NAFNet()
-        # self.ll_layer_module = FFCNAFNet()
         self.ll_layer_module = IAT()
-        # self.h_layer = FFCResNet(BasicBlock, [1, 1, 1, 1], out_h=64, out_w=64)
-        # self.h_layer = UNET()
         self.h_layer = FFCNet()
-
-        # self.h_layer = Trans_low()
         self.criterion_l1 = torch.nn.SmoothL1Loss()
 
     def forward(self, inp):
@@ -94,8 +87,11 @@ class UWEnhancer(nn.Module):
 
 
 if __name__ == '__main__':
-    tensor = torch.randn(1, 3, 36, 64).cuda()
+    tensor = torch.randn(1, 3, 460, 640).cuda()
     model = UWEnhancer().cuda()
-    print('total parameters:', sum(param.numel() for param in model.parameters()))
     res = model(tensor)
     print(res.shape)
+    from thop import profile, clever_format
+    macs, params = profile(model, inputs=(tensor,))
+    macs, params = clever_format([macs, params], "%.3f")
+    print("params :", params)

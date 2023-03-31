@@ -80,14 +80,14 @@ class Config(object):
         self._C.TRAINING.TRAIN_DIR = 'images_dir/train'
         self._C.TRAINING.VAL_DIR = 'images_dir/val'
         self._C.TRAINING.SAVE_DIR = 'checkpoints'
-        self._C.TRAINING.PS_W = 64
-        self._C.TRAINING.PS_H = 64
+        self._C.TRAINING.PS_W = 256
+        self._C.TRAINING.PS_H = 256
 
         self._C.TESTING = CN()
         self._C.TESTING.WEIGHT = None
         self._C.TESTING.SAVE_IMAGES = False
-        self._C.TESTING.PS_W = 64
-        self._C.TESTING.PS_H = 64
+        self._C.TESTING.PS_W = 256
+        self._C.TESTING.PS_H = 256
 
         # Override parameter values from YAML file first, then from override list.
         self._C.merge_from_file(config_yaml)

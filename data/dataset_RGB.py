@@ -45,35 +45,16 @@ class DataLoaderTrain(Dataset):
     def __getitem__(self, index):
         index_ = index % self.sizex
 
-        # mixup_idx = random.randint(0, self.sizex - 1)
-        # while mixup_idx == index_:
-        #     mixup_idx = random.randint(0, self.sizex - 1)
-
         inp_path = self.inp_filenames[index_]
         tar_path = self.tar_filenames[index_]
-        #
-        # mixup_inp_path = self.inp_filenames[mixup_idx]
-        # mixup_tar_path = self.tar_filenames[mixup_idx]
 
         inp_img = Image.open(inp_path).convert('RGB')
         tar_img = Image.open(tar_path).convert('RGB')
-        #
-        # mixup_inp_img = Image.open(mixup_inp_path)
-        # mixup_tar_img = Image.open(mixup_tar_path)
 
         inp_img = np.array(inp_img)
         tar_img = np.array(tar_img)
-        #
-        # mixup_inp_img = np.array(mixup_inp_img)
-        # mixup_tar_img = np.array(mixup_tar_img)
 
         transformed = self.transform(image=inp_img, target=tar_img)
-        # mixup_transformed = self.transform(image=mixup_inp_img, target=mixup_tar_img)
-
-        # lam = random.uniform(0, 1)
-        #
-        # inp_img = lam * F.to_tensor(transformed['image']) + (1 - lam) * F.to_tensor(mixup_transformed['image'])
-        # tar_img = lam * F.to_tensor(transformed['target']) + (1 - lam) * F.to_tensor(mixup_transformed['target'])
 
         inp_img = F.to_tensor(transformed['image'])
         tar_img = F.to_tensor(transformed['target'])
@@ -99,15 +80,6 @@ class DataLoaderTest(Dataset):
         self.ps_w = self.img_options['w']
         self.ps_h = self.img_options['h']
 
-        self.transform = A.Compose([
-            # A.RandomResizedCrop(width=img_options['w'], height=img_options['h']),
-        ],
-            additional_targets={
-                'target': 'image',
-                # 'mask': 'image'
-            }
-        )
-
     def __len__(self):
         return self.sizex
 
@@ -128,8 +100,6 @@ class DataLoaderTest(Dataset):
         inp_img = F.to_tensor(transformed['image'])
         tar_img = F.to_tensor(transformed['target'])
 
-        # inp_img = F.to_tensor(inp_img)
-        # tar_img = F.to_tensor(tar_img)
 
         filename = os.path.splitext(os.path.split(tar_path)[-1])[0]
 

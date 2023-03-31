@@ -19,7 +19,7 @@ from utils import seed_everything, save_checkpoint
 
 warnings.filterwarnings('ignore')
 
-opt = Config('training.yml')
+opt = Config('config.yml')
 
 seed_everything(opt.OPTIM.SEED)
 
@@ -29,14 +29,13 @@ if not os.path.exists(opt.TRAINING.SAVE_DIR):
 
 def train():
     # Accelerate
-    kwargs = [DistributedDataParallelKwargs(find_unused_parameters=True)]
-    accelerator = Accelerator(kwargs_handlers=kwargs)
+    accelerator = Accelerator()
     device = accelerator.device
     config = {
         "dataset": opt.TRAINING.TRAIN_DIR,
         "model": opt.MODEL.SESSION
     }
-    accelerator.init_trackers("film", config=config)
+    accelerator.init_trackers("uw", config=config)
     criterion_psnr = torch.nn.MSELoss()
     criterion_ssim = SSIM(data_range=1, size_average=True, channel=3).to(device)
 
@@ -50,12 +49,9 @@ def train():
     val_dataset = get_test_data(val_dir, opt.MODEL.FILM, {'w': opt.TESTING.PS_W, 'h': opt.TESTING.PS_H})
     testloader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, num_workers=8, drop_last=False,
                             pin_memory=True)
-    # print(train_dataset[0][0].shape)
-    # print(val_dataset[0][0].shape)
 
     model = UWEnhancer()
 
-    # Optimizer & Scheduler
     optimizer = optim.AdamW(model.parameters(), lr=opt.OPTIM.LR_INITIAL,
                             betas=(0.9, 0.999), eps=1e-8)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, opt.OPTIM.NUM_EPOCHS, eta_min=opt.OPTIM.LR_MIN)
@@ -76,8 +72,6 @@ def train():
             # get the inputs; data is a list of [target, input, filename]
             tar = data[0].contiguous()
             inp = data[1].contiguous()
-            # print(inp.shape)
-            # print(tar.shape)
 
             # forward
             optimizer.zero_grad()
@@ -111,8 +105,8 @@ def train():
                     # print("tar_shape: ", tar.shape)
 
                     res = model(inp).contiguous()
-
-                    res = torch.nn.functional.interpolate(res, (tar.shape[2], tar.shape[3]))
+                    if res.shape != tar.shape:
+                        res = torch.nn.functional.interpolate(res, (tar.shape[2], tar.shape[3]))
                     # save_image(res, os.path.join(os.getcwd(), "result", str(idx) + '_pred.png'))
                     res, tar = accelerator.gather((res, tar))
 
