@@ -97,6 +97,7 @@ class LPAttention(nn.Module):
         k1 = nn.functional.interpolate(k1, size=(pyr_inp[-2].shape[2], pyr_inp[-2].shape[3]))
         k1k2 = torch.cat([k1, k2], dim=1)
         k1k2 = self.conv3(k1k2)
+        k1k2 = self.relu(k1k2)
         # k1k2(k2)->k3
         k1k2 = nn.functional.interpolate(k1k2, size=(pyr_inp[-3].shape[2], pyr_inp[-3].shape[3]))
         k = torch.cat([k1k2, k3], dim=1)
@@ -109,6 +110,7 @@ class LPAttention(nn.Module):
         v1 = nn.functional.interpolate(v1, size=(pyr_inp[-2].shape[2], pyr_inp[-2].shape[3]))
         v1v2 = torch.cat([v1, v2], dim=1)
         v1v2 = self.conv3_(v1v2)
+        v1v2 = self.relu(v1v2)
         v1v2 = nn.functional.interpolate(v1v2, size=(pyr_inp[-3].shape[2], pyr_inp[-3].shape[3]))
         v = torch.cat([v1v2, v3], dim=1)
         v = self.conv4_(v)
@@ -325,7 +327,7 @@ if __name__ == "__main__":
 
     # using('start . ')
     model = LPNAFNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num,
-                   enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
+                     enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
 
     model.eval()
     input = torch.randn(1, 3, 460, 640).cuda()
