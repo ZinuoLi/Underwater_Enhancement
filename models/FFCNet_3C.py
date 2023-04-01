@@ -378,15 +378,15 @@ class FFCResNetBlock(torch.nn.Module):
         return x + out
 
 
-class FFCNet(nn.Module):
+class FFCNet3C(nn.Module):
 
     def __init__(self):
-        super(FFCNet, self).__init__()
+        super(FFCNet3C, self).__init__()
 
-        self.conv1 = nn.Conv2d(9, 64, kernel_size=9, padding=4, padding_mode='reflect', stride=1)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=9, padding=4, padding_mode='reflect', stride=1)
         self.relu = nn.PReLU()
 
-        self.resBlock = self._makeLayer_(FFCResNetBlock, 64, 64, 9)
+        self.resBlock = self._makeLayer_(FFCResNetBlock, 64, 64, 16)
 
         self.conv2 = nn.Conv2d(64, 64, kernel_size=1, stride=1)
         self.bn2 = nn.BatchNorm2d(64)
@@ -398,7 +398,7 @@ class FFCNet(nn.Module):
         self.convPos2 = nn.Conv2d(256, 64, kernel_size=3, stride=1, padding=1, padding_mode='reflect')
         self.reluPos2 = nn.PReLU()
 
-        self.finConv = nn.Conv2d(64, 9, kernel_size=1, stride=1)
+        self.finConv = nn.Conv2d(64, 3, kernel_size=1, stride=1)
 
     def _makeLayer_(self, block, inChannals, outChannals, blocks):
         layers = []
@@ -411,30 +411,17 @@ class FFCNet(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x)
-        # print("conv1", x.shape)
         x = self.relu(x)
         residual = x
-
         out = self.resBlock(x)
-        # print("res", out.shape)
-
         out = self.conv2(out)
-        # print(out.shape)
         out = self.bn2(out)
-        # print(out.shape)
         out += residual
-
         out = self.convPos1(out)
-        # print(out.shape)
-        # print(out.shape)
         out = self.reluPos1(out)
-        # print(out.shape)
-
         out = self.convPos2(out)
-        # print(out.shape)
         out = self.reluPos2(out)
         out = self.finConv(out)
-        # print(out.shape)
 
         return out
 

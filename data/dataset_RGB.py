@@ -95,11 +95,8 @@ class DataLoaderTest(Dataset):
         inp_img = np.array(inp_img)
         tar_img = np.array(tar_img)
 
-        transformed = self.transform(image=inp_img, target=tar_img)
-
-        inp_img = F.to_tensor(transformed['image'])
-        tar_img = F.to_tensor(transformed['target'])
-
+        inp_img = F.to_tensor(inp_img)
+        tar_img = F.to_tensor(tar_img)
 
         filename = os.path.splitext(os.path.split(tar_path)[-1])[0]
 

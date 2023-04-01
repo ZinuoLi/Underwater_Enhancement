@@ -1,5 +1,5 @@
 # from models.High_FFC import BasicBlock
-from models.nafnet import NAFNet
+from models.LPnafnet import LPNAFNet
 from pytorch_wavelets import DWTForward, DWTInverse
 from loss import Perceptual
 import torch
@@ -8,6 +8,7 @@ import torch.nn.functional as F
 # from models.High_FFC import *
 from models.FFCNet import FFCNet
 from models.IAT import IAT
+from models.LPFormer import LPViT
 
 
 class ResidualBlock(nn.Module):
@@ -55,7 +56,7 @@ class UWEnhancer(nn.Module):
         super(UWEnhancer, self).__init__()
         self.dwt = DWTForward(J=1, mode='zero', wave='haar')
         self.idwt = DWTInverse(mode='zero', wave='haar')
-        self.ll_layer_module = IAT()
+        self.ll_layer_module = LPNAFNet()
         self.h_layer = FFCNet()
         self.criterion_l1 = torch.nn.SmoothL1Loss()
 

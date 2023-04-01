@@ -29,7 +29,8 @@ if not os.path.exists(opt.TRAINING.SAVE_DIR):
 
 def train():
     # Accelerate
-    accelerator = Accelerator()
+    kwargs = [DistributedDataParallelKwargs(find_unused_parameters=True)]
+    accelerator = Accelerator(kwargs_handlers=kwargs)
     device = accelerator.device
     config = {
         "dataset": opt.TRAINING.TRAIN_DIR,
@@ -108,7 +109,7 @@ def train():
                     if res.shape != tar.shape:
                         res = torch.nn.functional.interpolate(res, (tar.shape[2], tar.shape[3]))
                     # save_image(res, os.path.join(os.getcwd(), "result", str(idx) + '_pred.png'))
-                    res, tar = accelerator.gather((res, tar))
+                    # res, tar = accelerator.gather((res, tar))
 
                     psnr += peak_signal_noise_ratio(res, tar, data_range=1)
                     ssim += structural_similarity_index_measure(res, tar, data_range=1)
@@ -131,8 +132,7 @@ def train():
                 }, step=epoch)
 
                 print(
-                    "epoch: {}, PSNR: {}, SSIM: {}, best PSNR: {}".format(epoch, psnr, ssim,
-                                                                          best_psnr))
+                    "epoch: {}, PSNR: {}, SSIM: {}, best PSNR: {}".format(epoch, psnr, ssim, best_psnr))
 
     accelerator.end_training()
 

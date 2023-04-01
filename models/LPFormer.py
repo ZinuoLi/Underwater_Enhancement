@@ -90,6 +90,7 @@ class LPAttention(nn.Module):
     def __init__(self, depth=2, num_dims=3, bias=True):
         super().__init__()
         self.lap_pyramid = LapPyramidConv(depth)
+        self.relu = nn.PReLU()
         # k conv
         self.conv1 = nn.Conv2d(num_dims, num_dims * 3, kernel_size=1, bias=bias)
         self.conv2 = nn.Conv2d(num_dims * 3, num_dims * 3, kernel_size=3, padding=1, groups=num_dims * 3, bias=bias)
@@ -105,6 +106,7 @@ class LPAttention(nn.Module):
 
     def forward(self, x):
         q = self.conv2(self.conv1(x))
+        q = self.relu(q)
         pyr_inp = self.lap_pyramid.pyramid_decom(img=x)
 
         k1 = self.conv2(self.conv1(pyr_inp[-1]))
@@ -118,6 +120,7 @@ class LPAttention(nn.Module):
         k1k2 = nn.functional.interpolate(k1k2, size=(pyr_inp[-3].shape[2], pyr_inp[-3].shape[3]))
         k = torch.cat([k1k2, k3], dim=1)
         k = self.conv4(k)
+        k = self.relu(k)
 
         v1 = self.conv2_(self.conv1_(pyr_inp[-1]))
         v2 = self.conv2_(self.conv1_(pyr_inp[-2]))
@@ -128,10 +131,12 @@ class LPAttention(nn.Module):
         v1v2 = nn.functional.interpolate(v1v2, size=(pyr_inp[-3].shape[2], pyr_inp[-3].shape[3]))
         v = torch.cat([v1v2, v3], dim=1)
         v = self.conv4_(v)
+        v = self.relu(v)
 
         qk = q @ k.transpose(2, 3)
         qkv = qk @ v
         qkv = self.conv5(qkv)
+        qkv = self.relu(qkv)
         return qkv
 
 
@@ -204,6 +209,7 @@ class TransformerBlock(nn.Module):
 
         self.norm1 = LayerNorm2d(dim)
         self.lpattn = LPAttention()
+        # self.lpattn = NextAttentionZ(dim, num_heads)
         self.norm2 = LayerNorm2d(dim)
         self.ffn = FeedForward(dim, ffn_expansion_factor, bias)
 
@@ -337,7 +343,7 @@ class U_LPViT(nn.Module):
                  inp_channels=3,
                  out_channels=3,
                  dim=3,
-                 num_blocks=[4, 8, 12, 20],
+                 num_blocks=[1, 2, 4, 8],
                  num_refinement_blocks=2,
                  heads=[1, 2, 4, 8],
                  ffn_expansion_factor=2.66,
@@ -514,7 +520,7 @@ class LPViT(nn.Module):
                  inp_channels=3,
                  out_channels=3,
                  dim=3,
-                 num_blocks=[4, 8, 12, 20],
+                 num_blocks=[1, 2, 4, 8],
                  num_refinement_blocks=2,
                  heads=[1, 2, 4, 8],
                  ffn_expansion_factor=2.66,
@@ -598,7 +604,7 @@ class LPViT(nn.Module):
 
 
 if __name__ == '__main__':
-    model = LPViT().cuda()
+    model = U_LPViT().cuda()
     tensor = torch.randn(4, 3, 230, 320).cuda()
     res = model(tensor)
     print(res.shape)
