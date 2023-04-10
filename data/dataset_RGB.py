@@ -62,6 +62,17 @@ class DataLoaderTrain(Dataset):
         filename = os.path.splitext(os.path.split(tar_path)[-1])[0]
 
         return tar_img, inp_img, filename
+    
+    
+    def get_labels(self):
+        labels = []
+        for f_name in self.inp_filenames:
+            if 'test' in f_name:
+                label = 0
+            else:
+                label = 1
+            labels.append(label)
+        return labels
 
 
 class DataLoaderTest(Dataset):
