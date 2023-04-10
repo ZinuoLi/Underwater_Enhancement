@@ -5,6 +5,7 @@ import torch
 import torch.optim as optim
 import torchvision.utils
 from accelerate import Accelerator, DistributedDataParallelKwargs
+from torchsampler import ImbalancedDatasetSampler
 from pytorch_msssim import SSIM
 from torch.utils.data import DataLoader
 from torchmetrics.functional import peak_signal_noise_ratio, structural_similarity_index_measure
@@ -46,7 +47,7 @@ def train():
 
     train_dataset = get_training_data(train_dir, opt.MODEL.FILM, {'w': opt.TRAINING.PS_W, 'h': opt.TRAINING.PS_H})
     trainloader = DataLoader(dataset=train_dataset, batch_size=opt.OPTIM.BATCH_SIZE, shuffle=True, num_workers=16,
-                             drop_last=False, pin_memory=True)
+                             drop_last=False, pin_memory=True, sampler=ImbalancedDatasetSampler(train_dataset))
     val_dataset = get_test_data(val_dir, opt.MODEL.FILM, {'w': opt.TESTING.PS_W, 'h': opt.TESTING.PS_H})
     testloader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, num_workers=8, drop_last=False,
                             pin_memory=True)
