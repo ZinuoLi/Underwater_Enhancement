@@ -6,6 +6,8 @@
 
 **University of Macau**
 
+In <b>_International Joint Conference on Neural Networks 2024 (IJCNN 2024)_<b>
+
 # :mag: Usage
 
 ## Installation
