@@ -1,4 +1,4 @@
-# fujifilm
+# UWFormer
 ## Dependency
 ```
 git clone https://github.com/fbcotter/pytorch_wavelets
