@@ -56,7 +56,7 @@ class UWEnhancer(nn.Module):
         super(UWEnhancer, self).__init__()
         self.dwt = DWTForward(J=1, mode='zero', wave='haar')
         self.idwt = DWTInverse(mode='zero', wave='haar')
-        self.ll_layer_module = LPNAFNet()
+        self.ll_layer_module = LPViT()
         self.h_layer = FFCNet()
         self.criterion_l1 = torch.nn.SmoothL1Loss()
 
