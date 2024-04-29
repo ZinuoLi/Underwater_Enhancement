@@ -4,7 +4,7 @@
 
 **Weiwen Chen, Yingtie Lei, [Shenghong Luo](https://shenghongluo.github.io), Ziyang Zhou, Mingxian Li and [Chi-Man Pun](https://www.cis.um.edu.mo/~cmpun)**
 
-**University of Macau**
+**University of Macau, Huizhou University**
 
 In <b>_International Joint Conference on Neural Networks 2024 (IJCNN 2024)_<b>
 
